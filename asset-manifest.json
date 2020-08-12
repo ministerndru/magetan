@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/magetan/static/css/main.5f361e03.chunk.css",
-    "main.js": "/magetan/static/js/main.46b6fc6d.chunk.js",
-    "main.js.map": "/magetan/static/js/main.46b6fc6d.chunk.js.map",
+    "main.js": "/magetan/static/js/main.f87c7f92.chunk.js",
+    "main.js.map": "/magetan/static/js/main.f87c7f92.chunk.js.map",
     "runtime-main.js": "/magetan/static/js/runtime-main.13e27ddb.js",
     "runtime-main.js.map": "/magetan/static/js/runtime-main.13e27ddb.js.map",
     "static/css/2.ff483f3d.chunk.css": "/magetan/static/css/2.ff483f3d.chunk.css",
     "static/js/2.106d6bd8.chunk.js": "/magetan/static/js/2.106d6bd8.chunk.js",
     "static/js/2.106d6bd8.chunk.js.map": "/magetan/static/js/2.106d6bd8.chunk.js.map",
     "index.html": "/magetan/index.html",
-    "precache-manifest.0cc18c4d095afb5a6232514a03d6ba0d.js": "/magetan/precache-manifest.0cc18c4d095afb5a6232514a03d6ba0d.js",
+    "precache-manifest.3c4b0a5773b6047755c371abf31d4b5e.js": "/magetan/precache-manifest.3c4b0a5773b6047755c371abf31d4b5e.js",
     "service-worker.js": "/magetan/service-worker.js",
     "static/css/2.ff483f3d.chunk.css.map": "/magetan/static/css/2.ff483f3d.chunk.css.map",
     "static/css/main.5f361e03.chunk.css.map": "/magetan/static/css/main.5f361e03.chunk.css.map",
@@ -21,6 +21,6 @@
     "static/css/2.ff483f3d.chunk.css",
     "static/js/2.106d6bd8.chunk.js",
     "static/css/main.5f361e03.chunk.css",
-    "static/js/main.46b6fc6d.chunk.js"
+    "static/js/main.f87c7f92.chunk.js"
   ]
 }

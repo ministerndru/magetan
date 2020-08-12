@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/magetan/precache-manifest.0cc18c4d095afb5a6232514a03d6ba0d.js"
+  "/magetan/precache-manifest.3c4b0a5773b6047755c371abf31d4b5e.js"
 );
 
 self.addEventListener('message', (event) => {

@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "9084e24896477f16c0d838be55851c17",
+    "revision": "9ffe75c6c8e44cf6e054ad6cb7a3fb96",
     "url": "/magetan/index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/magetan/static/css/2.ff483f3d.chunk.css"
   },
   {
-    "revision": "cdbab611656fd208319a",
+    "revision": "1cfae95aee5f08b495f7",
     "url": "/magetan/static/css/main.5f361e03.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/magetan/static/js/2.106d6bd8.chunk.js.LICENSE.txt"
   },
   {
-    "revision": "cdbab611656fd208319a",
-    "url": "/magetan/static/js/main.46b6fc6d.chunk.js"
+    "revision": "1cfae95aee5f08b495f7",
+    "url": "/magetan/static/js/main.f87c7f92.chunk.js"
   },
   {
     "revision": "c9df2e39e270ebb210d3",
