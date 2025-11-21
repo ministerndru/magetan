@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sistem Pemanggilan Antrian Pasien - Puskesmas Candirejo Magetan</title>
+  <style>
+  :root{--bg:#e9f7ec;--card:#f0fff4;--accent:#0f9d58;--accent-2:#ffd57a;--danger:#d9534f;--ok:#2a9d8f;--text:#0b3a2b}
+    *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,#e6faed,#d8f3df)}
+    .wrap{max-width:1100px;margin:18px auto;padding:16px}
+  header{display:flex;gap:12px;align-items:center}
+  .logo{width:56px;height:56px;border-radius:8px;object-fit:cover}
+  header h1{margin:0;font-size:1.05rem}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:12px}
+    .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 2px 8px rgba(11,37,69,0.06)}
+    label{display:block;font-weight:600;margin-bottom:6px}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type=text], input[type=number], textarea, select{width:100%;padding:8px;border-radius:6px;border:1px solid #d9e2ef;background:white}
+    textarea{min-height:84px}
+    button{background:var(--accent);color:white;border:0;padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(0,0,0,0.06)}
+    button.warn{background:var(--danger)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .list{margin-top:8px;border-radius:8px;border:1px solid #e6edf6;padding:6px;max-height:480px;overflow:auto;background:white}
+    .item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:6px;margin:6px 0}
+    .item .left{display:flex;gap:10px;align-items:center}
+    .badge{min-width:44px;text-align:center;padding:6px 8px;border-radius:6px;background:#eef6ff;color:var(--accent);font-weight:700}
+    .name{font-weight:600}
+    .current{background:var(--accent);color:white;border:3px solid var(--accent-2);box-shadow:0 8px 30px rgba(0,120,212,0.12)}
+    .muted{color:#5b6b7a;font-size:0.95rem}
+    .settings{display:flex;flex-direction:column;gap:8px}
+    .kbd{display:inline-block;padding:2px 6px;border-radius:4px;background:#111;color:white;font-size:0.85rem}
+    footer{margin-top:12px;color:#596b7a;font-size:0.9rem}
+    /* Responsive */
+    @media (max-width:980px){.grid{grid-template-columns:1fr} .card{margin-bottom:12px}}
+    /* High-contrast print */
+    @media print{button, .controls, .settings, header, .actions{display:none} body{background:white}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="https://prokopim.magetan.go.id/wp-content/uploads/2018/05/cropped-cropped-Magetan.png" alt="Logo Magetan" class="logo" width="56" height="56" />
+      <div>
+        <h1>Sistem Pemanggilan Antrian Pasien</h1>
+        <div class="muted">Puskesmas Candirejo - Magetan</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: main controls + list -->
+      <main class="card" aria-labelledby="queue-title">
+        <h2 id="queue-title">Daftar Antrian</h2>
+
+        <section aria-labelledby="add-title">
+          <h3 id="add-title" class="muted" style="margin:6px 0">Tambah pasien</h3>
+          <div class="row" style="gap:8px;margin-bottom:8px">
+            <input id="num" type="text" placeholder="Nomor antrian (bebas)" aria-label="Nomor antrian" />
+            <input id="name" type="text" placeholder="Nama pasien" aria-label="Nama pasien" />
+            <button id="addBtn">Tambah</button>
+          </div>
+
+          <label for="pasteArea">Atau paste CSV (nomor,nama) / tiap baris baru</label>
+          <textarea id="pasteArea" placeholder="Contoh:\n5,Budi\n6,Siti" aria-label="Paste daftar antrian"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="loadPaste" class="ghost">Load dari Paste</button>
+            <button id="importSample" class="ghost">Import Contoh</button>
+            <input id="fileInput" type="file" accept=".csv" aria-label="Import CSV" />
+          </div>
+        </section>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid #e6edf6">
+
+        <section aria-labelledby="list-title">
+          <h3 id="list-title" class="muted">Antrian Saat Ini</h3>
+          <div id="list" class="list" role="list" aria-live="polite" tabindex="0"></div>
+        </section>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid #e6edf6">
+
+        <section aria-labelledby="controls-title">
+          <h3 id="controls-title" class="muted">Kontrol Panggilan</h3>
+          <div class="controls" style="margin-top:8px">
+            <button id="callBtn">Call</button>
+            <button id="repeatBtn" class="ghost">Repeat</button>
+            <button id="skipBtn" class="ghost">Skip</button>
+            <button id="stopBtn" class="ghost warn">Stop</button>
+
+            <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
+              <label class="muted">Auto:</label>
+              <input id="autoToggle" type="checkbox" aria-label="Toggle auto mode" />
+              <label class="muted">Delay (s)</label>
+              <input id="autoDelay" type="number" min="2" value="5" style="width:76px" aria-label="Jeda auto (detik)" />
+            </div>
+          </div>
+        </section>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid #e6edf6">
+
+        <section aria-labelledby="log-title">
+          <h3 id="log-title" class="muted">Log Panggilan</h3>
+          <div id="logWrap" style="max-height:140px;overflow:auto;padding:6px;border-radius:6px;border:1px solid #e6edf6;background:white"></div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="exportLog" class="ghost">Ekspor Log (CSV)</button>
+            <button id="clearLog" class="ghost warn">Hapus Log</button>
+          </div>
+        </section>
+      </main>
+
+      <!-- Right: settings -->
+      <aside class="card" aria-labelledby="settings-title">
+        <h2 id="settings-title">Pengaturan TTS & Format</h2>
+        <div class="settings">
+          <label>Voice
+            <select id="voiceSelect" aria-label="Pilih suara"></select>
+          </label>
+          <div class="row">
+            <label class="muted" style="min-width:70px">Kecepatan</label>
+            <input id="rate" type="range" min="0.6" max="1.6" step="0.1" value="1" aria-label="Kecepatan bicara" />
+            <span id="rateVal" class="muted">1.0</span>
+          </div>
+          <div class="row">
+            <label class="muted" style="min-width:70px">Volume</label>
+            <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume bicara" />
+            <span id="volVal" class="muted">1.00</span>
+          </div>
+
+          <label>Format pengumuman (gunakan [nomor], [nama])
+            <input id="template" type="text" value="Nomor antrian [nomor] dipersilakan ke loket." aria-label="Template pengumuman" />
+          </label>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="testTTS" class="ghost">Test Suara</button>
+            <button id="clearQueue" class="ghost warn">Kosongkan Antrian</button>
+            <button id="exportQueue" class="ghost">Ekspor Antrian (CSV)</button>
+          </div>
+
+          <hr style="margin:10px 0;border:none;border-top:1px solid #e6edf6">
+
+          <div>
+            <strong class="muted">Aksesibilitas</strong>
+            <p class="muted" style="margin:6px 0">Kontras tinggi, fokus keyboard, dan notifikasi status.</p>
+            <div role="status" aria-live="polite" id="status" class="muted">Siap</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      Petunjuk singkat: Gunakan input di atas untuk menambah antrian. Tekan <span class="kbd">Space</span> untuk memanggil/stop, panah kiri/kanan untuk navigasi.
+    </footer>
+  </div>
+
+  <script>
+    // Core in-memory data structures
+    const queue = []; // {id, nomor, nama}
+    const log = []; // {timestamp, nomor, nama, action}
+    let currentIndex = -1;
+    let autoTimer = null;
+
+    // UI elements
+    const listEl = document.getElementById('list');
+    const logWrap = document.getElementById('logWrap');
+    const statusEl = document.getElementById('status');
+
+    const numInput = document.getElementById('num');
+    const nameInput = document.getElementById('name');
+    const addBtn = document.getElementById('addBtn');
+    const pasteArea = document.getElementById('pasteArea');
+    const loadPaste = document.getElementById('loadPaste');
+    const importSample = document.getElementById('importSample');
+    const fileInput = document.getElementById('fileInput');
+
+    const callBtn = document.getElementById('callBtn');
+    const repeatBtn = document.getElementById('repeatBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const autoToggle = document.getElementById('autoToggle');
+    const autoDelay = document.getElementById('autoDelay');
+
+    const voiceSelect = document.getElementById('voiceSelect');
+    const rate = document.getElementById('rate');
+    const rateVal = document.getElementById('rateVal');
+    const volume = document.getElementById('volume');
+    const volVal = document.getElementById('volVal');
+    const templateInput = document.getElementById('template');
+    const testTTS = document.getElementById('testTTS');
+    const clearQueueBtn = document.getElementById('clearQueue');
+    const exportQueueBtn = document.getElementById('exportQueue');
+
+    const exportLogBtn = document.getElementById('exportLog');
+    const clearLogBtn = document.getElementById('clearLog');
+
+    // Web Speech API helpers
+    // Guard in case browser does not support speechSynthesis
+    const synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
+    let voices = [];
+
+    function populateVoices(){
+      // If synth is not available, show a disabled option
+      if(!synth){
+        voiceSelect.innerHTML = '<option value="-1">(TTS tidak tersedia di browser ini)</option>';
+        voiceSelect.disabled = true;
+        return;
+      }
+      voices = synth.getVoices().sort((a,b)=>a.name.localeCompare(b.name));
+      voiceSelect.innerHTML = '';
+      voices.forEach((v,i)=>{
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = v.name + ' ('+v.lang+')'+(v.default? ' — default':'');
+        voiceSelect.appendChild(opt);
+      });
+      // Try to select Indonesian voice if available
+      const idVoiceIndex = voices.findIndex(v => /^id(-|$)/i.test(v.lang) || /indonesian|bahasa/i.test(v.name));
+      if(idVoiceIndex>=0) voiceSelect.value = idVoiceIndex;
+    }
+    if(synth){
+      synth.onvoiceschanged = populateVoices;
+    }
+
+    function speak(text, opts={}){
+      if(!synth){
+        setStatus('Browser tidak mendukung SpeechSynthesis');
+        return;
+      }
+      // Stop any ongoing
+      try{ synth.cancel(); }catch(e){}
+      const u = new SpeechSynthesisUtterance(text);
+      const v = voices[voiceSelect.value];
+      if(v) u.voice = v;
+      u.rate = parseFloat(rate.value) || 1;
+      u.volume = parseFloat(volume.value) || 1;
+      u.lang = u.voice?.lang || 'id-ID';
+      // Announce when finished
+      u.onend = ()=>{
+        setStatus('Selesai membaca');
+      }
+      u.onerror = (e)=>{
+        setStatus('Error TTS: '+(e.error||'unknown'));
+      }
+      synth.speak(u);
+      setStatus('Membaca: '+text);
+    }
+
+    function stopSpeech(){
+      if(synth && (synth.speaking || synth.pending)) try{ synth.cancel(); }catch(e){}
+      setStatus('Dihentikan');
+    }
+
+    // UI helpers
+    function setStatus(t){ statusEl.textContent = t; }
+
+    function renderList(){
+      listEl.innerHTML = '';
+      queue.forEach((it, idx)=>{
+        const div = document.createElement('div');
+        div.className = 'item' + (idx === currentIndex ? ' current' : '');
+        div.setAttribute('role','listitem');
+        // left
+        const left = document.createElement('div'); left.className = 'left';
+        const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = it.nomor;
+        const nm = document.createElement('div');
+        nm.innerHTML = '<div class="name">'+escapeHtml(it.nama)+'</div><div class="muted">ID: '+escapeHtml(it.id)+'</div>';
+        left.appendChild(badge); left.appendChild(nm);
+        // actions
+        const right = document.createElement('div');
+        const del = document.createElement('button'); del.className='ghost'; del.textContent='Hapus';
+        del.addEventListener('click',()=>{ removeAt(idx); });
+        const goto = document.createElement('button'); goto.className='ghost'; goto.textContent='Panggil';
+        goto.addEventListener('click',()=>{ currentIndex = idx; callCurrent(); });
+        right.appendChild(goto); right.appendChild(del);
+
+        div.appendChild(left); div.appendChild(right);
+        listEl.appendChild(div);
+      });
+      // keyboard focus helpers
+      if(currentIndex>=0 && listEl.children[currentIndex]){
+        listEl.children[currentIndex].scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]); }
+
+    function addPatient(nomor,nama){
+      const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      queue.push({id, nomor: String(nomor||''), nama: String(nama||'')});
+      renderList();
+      setStatus('Pasien ditambahkan');
+    }
+
+    function removeAt(i){
+      if(i<0 || i>=queue.length) return;
+      // adjust currentIndex
+      if(i < currentIndex) currentIndex--;
+      else if(i === currentIndex) currentIndex = -1;
+      queue.splice(i,1);
+      renderList();
+      setStatus('Item dihapus');
+    }
+
+    function clearQueue(){
+      queue.length = 0; currentIndex = -1; renderList(); setStatus('Antrian dikosongkan');
+    }
+
+    function parseAndLoad(text){
+      const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      let added = 0;
+      lines.forEach(l=>{
+        const p = l.split(',');
+        if(p.length>=2){ addPatient(p[0].trim(), p.slice(1).join(',').trim()); added++; }
+        else { addPatient('', l); added++; }
+      });
+      setStatus(added + ' pasien di-load');
+    }
+
+    // Call logic
+    function buildAnnouncement(item){
+      let t = templateInput.value || 'Nomor antrian [nomor] dipersilakan ke loket.';
+      t = t.replace(/\[nomor\]/gi, item.nomor || '');
+      t = t.replace(/\[nama\]/gi, item.nama || '');
+      return t;
+    }
+
+    function callCurrent(){
+      if(currentIndex < 0 || currentIndex >= queue.length){ setStatus('Tidak ada pasien untuk dipanggil'); return; }
+      const item = queue[currentIndex];
+      const text = buildAnnouncement(item);
+      log.push({timestamp: new Date().toISOString(), nomor: item.nomor, nama: item.nama, action: 'call'});
+      renderLog();
+      renderList();
+      speak(text);
+    }
+
+    function callNext(){
+      if(queue.length===0){ setStatus('Antrian kosong'); return; }
+      if(currentIndex < queue.length-1) currentIndex++; else currentIndex = 0;
+      callCurrent();
+    }
+
+    function callPrev(){
+      if(queue.length===0){ setStatus('Antrian kosong'); return; }
+      if(currentIndex > 0) currentIndex--; else currentIndex = queue.length-1;
+      callCurrent();
+    }
+
+    function repeatCall(){
+      if(currentIndex<0){ setStatus('Tidak ada panggilan untuk diulang'); return; }
+      // repeat same
+      const item = queue[currentIndex];
+      const text = buildAnnouncement(item);
+      log.push({timestamp: new Date().toISOString(), nomor: item.nomor, nama: item.nama, action: 'repeat'});
+      renderLog();
+      speak(text);
+    }
+
+    function skip(){
+      if(queue.length===0){ setStatus('Antrian kosong'); return; }
+      log.push({timestamp: new Date().toISOString(), nomor: queue[currentIndex]?.nomor||'', nama: queue[currentIndex]?.nama||'', action: 'skip'});
+      if(currentIndex < queue.length-1) currentIndex++; else currentIndex = 0;
+      renderLog(); renderList(); callCurrent();
+    }
+
+    function startAuto(){
+      const secs = Math.max(2, Number(autoDelay.value)||5);
+      if(autoTimer) clearInterval(autoTimer);
+      autoTimer = setInterval(()=>{
+        // if currently speaking, wait until finished
+        if(synth.speaking) return; // simple backoff
+        callNext();
+      }, secs*1000);
+      setStatus('Mode otomatis aktif ('+secs+'s)');
+    }
+
+    function stopAuto(){ if(autoTimer){ clearInterval(autoTimer); autoTimer=null; setStatus('Auto mode dimatikan'); } }
+
+    function renderLog(){
+      logWrap.innerHTML = '';
+      log.slice().reverse().forEach(lg=>{
+        const d = document.createElement('div'); d.className='muted';
+        d.textContent = `${lg.timestamp} — ${lg.action.toUpperCase()} — ${lg.nomor} — ${lg.nama}`;
+        logWrap.appendChild(d);
+      });
+    }
+
+    // Export helpers
+    function download(filename, text){
+      const blob = new Blob([text], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    function exportLog(){
+      if(log.length===0){ setStatus('Log kosong'); return; }
+      const rows = [['timestamp','action','nomor','nama']];
+      log.forEach(r=>rows.push([r.timestamp,r.action,r.nomor,r.nama]));
+      download('log_panggilan.csv', rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'));
+      setStatus('Log diekspor');
+    }
+
+    function exportQueue(){
+      if(queue.length===0){ setStatus('Antrian kosong'); return; }
+      const rows = [['nomor','nama']];
+      queue.forEach(q=>rows.push([q.nomor,q.nama]));
+      download('antrian.csv', rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'));
+      setStatus('Antrian diekspor');
+    }
+
+    // event wiring
+    addBtn.addEventListener('click', ()=>{
+      const nomor = numInput.value.trim(); const nama = nameInput.value.trim();
+      if(!nama){ setStatus('Masukkan nama'); nameInput.focus(); return; }
+      addPatient(nomor||String(queue.length+1), nama);
+      numInput.value=''; nameInput.value='';
+    });
+
+    loadPaste.addEventListener('click', ()=>{ parseAndLoad(pasteArea.value||''); pasteArea.value=''; });
+    importSample.addEventListener('click', ()=>{
+      const sample = '1,Adi\n2,Siti\n3,Budi\n4,Sulam\n5,Lina'; parseAndLoad(sample);
+    });
+    fileInput.addEventListener('change', (ev)=>{
+      const f = ev.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ parseAndLoad(reader.result); fileInput.value=''; }
+      reader.readAsText(f);
+    });
+
+    callBtn.addEventListener('click', ()=>{ if(currentIndex<0) currentIndex=0; callCurrent(); });
+    repeatBtn.addEventListener('click', ()=>{ repeatCall(); });
+    skipBtn.addEventListener('click', ()=>{ skip(); });
+    stopBtn.addEventListener('click', ()=>{ stopSpeech(); });
+
+    autoToggle.addEventListener('change', (e)=>{
+      if(e.target.checked) startAuto(); else stopAuto();
+    });
+
+    rate.addEventListener('input', ()=>{ rateVal.textContent = rate.value; });
+    volume.addEventListener('input', ()=>{ volVal.textContent = parseFloat(volume.value).toFixed(2); });
+
+    testTTS.addEventListener('click', ()=>{
+      const t = (templateInput.value||'').replace(/\[nomor\]/g,'5').replace(/\[nama\]/g,'Budi');
+      speak(t);
+    });
+
+    clearQueueBtn.addEventListener('click', ()=>{ if(confirm('Kosongkan semua antrian?')) clearQueue(); });
+    exportQueueBtn.addEventListener('click', exportQueue);
+
+    exportLogBtn.addEventListener('click', exportLog);
+    clearLogBtn.addEventListener('click', ()=>{ if(confirm('Hapus seluruh log?')){ log.length=0; renderLog(); setStatus('Log dikosongkan'); } });
+
+    // Keyboard shortcuts: Space toggles call/stop; left/right for prev/next
+    window.addEventListener('keydown', (e)=>{
+      if(e.code === 'Space'){ e.preventDefault(); if(synth.speaking){ stopSpeech(); } else { if(currentIndex<0) currentIndex=0; callCurrent(); } }
+      else if(e.key === 'ArrowRight'){ e.preventDefault(); callNext(); }
+      else if(e.key === 'ArrowLeft'){ e.preventDefault(); callPrev(); }
+    });
+
+    // initial render and voice setup
+    populateVoices(); renderList(); renderLog();
+    setStatus('Siap (Offline)');
+
+    // small accessibility focus: allow list to be focusable
+    listEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const focused = document.activeElement; } });
+
+    // Ensure that when speech ends and auto is enabled, we continue after short delay
+    // (This makes auto-mode more robust than relying solely on setInterval)
+    // Hooking into utterance end is done in speak(); auto uses interval to step.
+
+    // Note: All data remain in memory only; this page does not send data anywhere.
+  </script>
+</body>
+</html>
